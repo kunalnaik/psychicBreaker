@@ -1,12 +1,16 @@
-// create game variable
-var game = new Phaser.Game(550, 400, Phaser.AUTO, '');
-
-// add states
-game.state.add('boot', bootState);
-game.state.add('load', loadState);
-game.state.add('menu', menuState);
-game.state.add('train', trainState);
-game.state.add('play', playState);
-
-// first start the boot state
-game.state.start('boot');
+function initPhaser() {
+  window.game = new Phaser.Game({
+    type: Phaser.AUTO,
+    width: 800,
+    height: 600,
+    backgroundColor: '#0a0a1a',
+    physics: {
+      default: 'arcade',
+      arcade: {
+        gravity: { x: 0, y: 0 },
+        checkCollision: { down: false }
+      }
+    },
+    scene: [bootScene, loadScene, trainScene, playScene]
+  });
+}

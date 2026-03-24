@@ -2,9 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>psychicBreaker</title>
-    <script src="webgazer.min.js"></script>
-    <script src="js/tracker.js"></script>
+    <title>Brick Breaker Psychic</title>
     <script src="phaser.min.js"></script>
     <script src="js/boot.js"></script>
     <script src="js/load.js"></script>
@@ -12,8 +10,139 @@
     <script src="js/train.js"></script>
     <script src="js/play.js"></script>
     <script src="js/game.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background: #0a0a1a;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        font-family: 'Press Start 2P', monospace;
+        overflow: hidden;
+      }
+      #game-canvas {
+        position: relative;
+        z-index: 1;
+      }
+      #mode-select {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #0a0a1a;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      }
+      #mode-select h1 {
+        color: #ffee00;
+        font-size: 28px;
+        margin-bottom: 20px;
+        text-shadow: 4px 4px 0 #ff6600, 6px 6px 0 #aa3300;
+        letter-spacing: 4px;
+      }
+      #mode-select #subtitle {
+        color: #cc44ff;
+        font-size: 18px;
+        margin-bottom: 80px;
+        font-style: italic;
+        letter-spacing: 4px;
+        text-shadow: 2px 2px 0 #6600aa;
+      }
+      .mode-btn {
+        background: #1a1a3a;
+        color: #00ffff;
+        border: 3px solid #00ffff;
+        padding: 20px 50px;
+        font-size: 12px;
+        font-family: 'Press Start 2P', monospace;
+        cursor: pointer;
+        margin: 15px;
+        transition: all 0.1s;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        box-shadow: 0 0 20px #00ffff44, inset 0 0 20px #00ffff11;
+      }
+      .mode-btn:hover {
+        background: #00ffff;
+        color: #0a0a1a;
+        box-shadow: 0 0 30px #00ffffaa, inset 0 0 20px #00ffff44;
+      }
+      .instructions {
+        color: #555588;
+        font-size: 8px;
+        margin-top: 60px;
+        text-align: center;
+        line-height: 2.5;
+      }
+      #loading-text {
+        color: #ffee00;
+        font-size: 12px;
+        display: none;
+        text-shadow: 2px 2px 0 #ff6600;
+      }
+    </style>
   </head>
   <body>
-    <!-- <script src="js/script_original.js"></script> -->
+    <div id="game-canvas"></div>
+    <div id="mode-select">
+      <h1>BRICK BREAKER</h1>
+      <p id="subtitle">PSYCHIC</p>
+      <button class="mode-btn" id="keyboard-btn">KEYBOARD</button>
+      <button class="mode-btn" id="psychic-btn">PSYCHIC</button>
+      <p class="instructions">
+        KEYBOARD: LEFT / RIGHT ARROWS<br>
+        PSYCHIC: MOVE WITH YOUR EYES
+      </p>
+      <p id="loading-text">Loading webcam calibration...</p>
+    </div>
+    <script>
+      var GAME_MODE = null;
+      
+      function startGame(mode) {
+        GAME_MODE = mode;
+        document.getElementById('mode-select').style.display = 'none';
+        
+        if (mode === 'psychic') {
+          document.getElementById('loading-text').style.display = 'block';
+          var script = document.createElement('script');
+          script.src = 'webgazer.min.js';
+          script.onload = function() {
+            var trackerScript = document.createElement('script');
+            trackerScript.src = 'js/tracker.js';
+            trackerScript.onload = function() {
+              checkWebgazerReady();
+            };
+            document.head.appendChild(trackerScript);
+          };
+          document.head.appendChild(script);
+        } else {
+          initPhaser();
+        }
+      }
+      
+      function checkWebgazerReady() {
+        if (typeof webgazer !== 'undefined' && typeof webgazer.begin === 'function') {
+          initPhaser();
+        } else {
+          setTimeout(checkWebgazerReady, 100);
+        }
+      }
+      
+      document.getElementById('keyboard-btn').addEventListener('click', function() {
+        startGame('keyboard');
+      });
+      
+      document.getElementById('psychic-btn').addEventListener('click', function() {
+        startGame('psychic');
+      });
+    </script>
   </body>
 </html>
