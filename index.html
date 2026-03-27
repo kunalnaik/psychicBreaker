@@ -6,7 +6,6 @@
     <script src="phaser.min.js"></script>
     <script src="js/boot.js"></script>
     <script src="js/load.js"></script>
-    <script src="js/menu.js"></script>
     <script src="js/train.js"></script>
     <script src="js/play.js"></script>
     <script src="js/game.js"></script>
@@ -17,15 +16,19 @@
         margin: 0;
         padding: 0;
         background: #0a0a1a;
+        width: 100vw;
+        height: 100vh;
         display: flex;
         justify-content: center;
         align-items: center;
-        min-height: 100vh;
         font-family: 'Press Start 2P', monospace;
         overflow: hidden;
       }
       #game-canvas {
         position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
         z-index: 1;
       }
       #mode-select {
@@ -107,6 +110,13 @@
       var GAME_MODE = null;
       
       function startGame(mode) {
+        if (window.location.protocol === 'file:') {
+          const loadingText = document.getElementById('loading-text');
+          loadingText.style.display = 'block';
+          loadingText.textContent = 'Use local server: run "npm start" then open http://localhost:8080';
+          return;
+        }
+
         GAME_MODE = mode;
         document.getElementById('mode-select').style.display = 'none';
         

@@ -4,34 +4,48 @@ class trainScene extends Phaser.Scene {
   }
 
   create() {
-    this.add.text(50, 50, 'Instructions:', {
+    const width = this.scale.width;
+    const height = this.scale.height;
+    const cx = width / 2;
+
+    this.add.text(24, 26, 'Instructions:', {
       fontFamily: '"Press Start 2P"',
-      fontSize: '16px',
+      fontSize: '12px',
       fill: '#ffffff'
     });
 
-    this.add.text(40, this.sys.game.config.height - 220, [
+    this.add.text(24, height - 190, [
       'We need to train WebGazer to accurately track your eyes.',
       'For best results, please keep your face close to the camera.',
       'While looking at your cursor, please click on the blocks',
       'below in random order. Once done, press ENTER.'
     ].join('\n'), {
       fontFamily: '"Press Start 2P"',
-      fontSize: '8px',
+      fontSize: '7px',
       fill: '#ffffff',
-      lineSpacing: 8
+      lineSpacing: 6
     });
 
+    const cols = 3;
+    const rows = 3;
+    const sideMargin = 24;
+    const gap = 10;
+    const btnW = Math.floor((width - sideMargin * 2 - gap * (cols - 1)) / cols);
+    const btnH = 34;
+    const gridTop = height - 105;
+
     for (let i = 0; i < 9; i++) {
-      const bx = 10 + (i % 3) * 260;
-      const by = this.sys.game.config.height - 120 + Math.floor(i / 3) * 50;
-      const btn = this.add.rectangle(bx + 120, by, 240, 40, 0x00ffff)
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const bx = sideMargin + col * (btnW + gap);
+      const by = gridTop + row * (btnH + 8);
+      const btn = this.add.rectangle(bx + btnW / 2, by, btnW, btnH, 0x00ffff)
         .setStrokeStyle(2, 0x006688)
         .setInteractive({ useHandCursor: true });
 
-      this.add.text(bx + 120, by, 'CLICK ME', {
+      this.add.text(bx + btnW / 2, by, 'CLICK ME', {
         fontFamily: '"Press Start 2P"',
-        fontSize: '8px',
+        fontSize: '7px',
         fill: '#0a0a1a'
       }).setOrigin(0.5);
 

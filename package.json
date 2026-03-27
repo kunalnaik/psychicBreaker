@@ -1,4 +1,10 @@
 {
+  "name": "psychic-breaker",
+  "private": true,
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "dev": "python3 -m http.server 8080"
+  },
   "dependencies": {
     "canvas": "^3.2.2",
     "phaser": "^3.90.0",
