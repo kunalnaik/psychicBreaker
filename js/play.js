@@ -11,6 +11,12 @@ class playScene extends Phaser.Scene {
     this.selectedPauseItem = 0;
     this.startupFailed = false;
     this.isLevelTransition = false;
+    this.psychicGuideGraphics = null;
+    this.psychicSmoothedPoint = null;
+    this.lastPredictionPollAt = 0;
+    this.psychicDebugText = null;
+    this.lastPredictionSeenAt = 0;
+    this.lastSeedTrainAt = 0;
 
     this.level = {
       name: 'LEVEL 1',
@@ -126,7 +132,36 @@ class playScene extends Phaser.Scene {
     );
 
     this.initUI();
+
+    if (GAME_MODE === 'psychic') {
+      this.psychicGuideGraphics = this.add.graphics().setDepth(25);
+// Debug text removed to clean up the UI
+
+      if (window.psychicLastCalibrationPointGame) {
+        this.psychicSmoothedPoint = {
+          x: window.psychicLastCalibrationPointGame.x,
+          y: window.psychicLastCalibrationPointGame.y
+        };
+      }
+
+      if (typeof window.initPsychicTracker === 'function') {
+        window.initPsychicTracker();
+      }
+      if (typeof window.webgazer !== 'undefined' && typeof window.webgazer.resume === 'function') {
+        window.webgazer.resume();
+      }
+    }
+
     this.setupLevel();
+
+    this.events.once('shutdown', () => {
+      if (this.psychicGuideGraphics) {
+        this.psychicGuideGraphics.destroy();
+      }
+      if (this.psychicDebugText) {
+        this.psychicDebugText.destroy();
+      }
+    });
   }
 
   initUI() {
@@ -287,11 +322,13 @@ class playScene extends Phaser.Scene {
   }
 
   quitToMain() {
-    if (window.game) {
-      window.game.destroy(true);
-      window.game = null;
+    if (GAME_MODE === 'psychic' && typeof window.shutdownPsychicTracker === 'function') {
+      window.shutdownPsychicTracker();
     }
-    document.getElementById('mode-select').style.display = 'flex';
+
+    setTimeout(() => {
+      location.reload();
+    }, 100);
   }
 
   initBricks(layout) {
@@ -422,14 +459,146 @@ class playScene extends Phaser.Scene {
   }
 
   handlePsychicInput() {
-    if (window.xprediction) {
-      if (window.xprediction >= 0 && window.xprediction <= this.scale.width) {
-        if (Math.abs(window.xprediction - window.prev_predict) < 5) {
-          this.paddle.x = window.xprediction;
-        }
+    const trackerState = window.psychicTrackerState || {};
+    if (trackerState.error) {
+      if (this.psychicGuideGraphics) {
+        this.psychicGuideGraphics.clear();
+      }
+      this.clampPaddle();
+      return;
+    }
+
+    this.pollCurrentPrediction();
+
+    const prediction = trackerState.prediction;
+    if (!prediction || typeof prediction.x !== 'number') {
+      if (this.psychicGuideGraphics) this.psychicGuideGraphics.clear();
+      this.clampPaddle();
+      return;
+    }
+
+    const canvasRect = this.game.canvas.getBoundingClientRect();
+    const fallbackViewportY = canvasRect.top + canvasRect.height * 0.85;
+    
+    // Lock Y to the paddle row for purely 1D (horizontal) tracking
+    const mappedPoint = this.viewportToGamePoint(
+      prediction.x,
+      fallbackViewportY
+    );
+
+    if (mappedPoint) {
+      if (!this.psychicSmoothedPoint) {
+        this.psychicSmoothedPoint = { x: mappedPoint.x, y: mappedPoint.y };
+      } else {
+        // Linear, predictable smoothing for a natural feel without acceleration stutter
+        const alpha = 0.2; 
+        
+        this.psychicSmoothedPoint.x += (mappedPoint.x - this.psychicSmoothedPoint.x) * alpha;
+        this.psychicSmoothedPoint.y += (mappedPoint.y - this.psychicSmoothedPoint.y) * alpha;
+      }
+
+      this.paddle.x = this.psychicSmoothedPoint.x;
+      this.renderPsychicGuide(this.psychicSmoothedPoint);
+      this.lastPredictionSeenAt = performance.now();
+    }
+
+// Debug text rendering removed
+
+    this.clampPaddle();
+  }
+
+  pollCurrentPrediction() {
+    const now = performance.now();
+    if (now - this.lastPredictionPollAt < 30) {
+      return;
+    }
+    this.lastPredictionPollAt = now;
+
+    if (typeof window.webgazer === 'undefined' || !window.webgazer.getTracker) {
+      return;
+    }
+    
+    const tracker = window.webgazer.getTracker();
+    if (!tracker || typeof tracker.getPositions !== 'function') {
+      return;
+    }
+
+    const positions = tracker.getPositions();
+    if (!positions || positions.length === 0) {
+      return;
+    }
+
+    const rawNoseX = positions[1][0];
+    
+    // Primary filter: Camera Deadzone to kill pure noise
+    if (!window.psychicSmoothedNoseX) {
+      window.psychicSmoothedNoseX = rawNoseX;
+    } else {
+      // If the camera only flickered by ~1.5 pixels, it's just noise. Ignore it.
+      // If it's a real head movement (> 1.5 pixels), track it quickly.
+      if (Math.abs(rawNoseX - window.psychicSmoothedNoseX) > 1.5) {
+        window.psychicSmoothedNoseX += (rawNoseX - window.psychicSmoothedNoseX) * 0.4;
       }
     }
-    this.clampPaddle();
+
+    const noseX = window.psychicSmoothedNoseX;
+    const baselineX = typeof window.psychicBaselineHeadX === 'number' ? window.psychicBaselineHeadX : 320;
+    
+    const deltaX = noseX - baselineX;
+    
+    // Sensitivity map: 80 webcam pixels = half the screen width.
+    const sensitivity = (this.scale.width / 2) / 80; 
+    let targetX = (this.scale.width / 2) - (deltaX * sensitivity);
+
+    const canvasRect = this.game.canvas.getBoundingClientRect();
+    const mockViewportX = (targetX / this.scale.width) * canvasRect.width + canvasRect.left;
+
+    const trackerState = window.psychicTrackerState || {};
+    trackerState.ready = true;
+    trackerState.hasPrediction = true;
+    trackerState.prediction = {
+      x: mockViewportX,
+      y: canvasRect.top + canvasRect.height * 0.85,
+      timestamp: Date.now()
+    };
+  }
+
+  renderPsychicGuide(predictionPoint) {
+    if (this.psychicGuideGraphics) {
+      this.psychicGuideGraphics.clear();
+    }
+    // Red guideline drawing intentionally disabled to make the paddle movement feel more "psychic" and magical.
+  }
+
+  viewportToGamePoint(viewportX, viewportY) {
+    if (typeof viewportX !== 'number' || typeof viewportY !== 'number') return null;
+
+    const canvasRect = this.game.canvas.getBoundingClientRect();
+    if (!canvasRect || canvasRect.width === 0 || canvasRect.height === 0) return null;
+
+    const normalizedX = (viewportX - canvasRect.left) / canvasRect.width;
+    const normalizedY = (viewportY - canvasRect.top) / canvasRect.height;
+
+    return {
+      x: Phaser.Math.Clamp(normalizedX, 0, 1) * this.scale.width,
+      y: Phaser.Math.Clamp(normalizedY, 0, 1) * this.scale.height
+    };
+  }
+
+  getWebcamAnchorInGameSpace() {
+    const webcamElement = document.getElementById('webgazerVideoFeed');
+    if (!webcamElement) {
+      return {
+        x: this.playBounds.x + 70,
+        y: this.playBounds.y + 70
+      };
+    }
+
+    const webcamRect = webcamElement.getBoundingClientRect();
+    return this.viewportToGamePoint(
+      webcamRect.left + webcamRect.width / 2,
+      webcamRect.top + webcamRect.height / 2
+    );
   }
 
   clampPaddle() {

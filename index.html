@@ -102,7 +102,7 @@
       <button class="mode-btn" id="psychic-btn">PSYCHIC</button>
       <p class="instructions">
         KEYBOARD: LEFT / RIGHT ARROWS<br>
-        PSYCHIC: MOVE WITH YOUR EYES
+        PSYCHIC: MOVE WITH YOUR MIND
       </p>
       <p id="loading-text">Loading webcam calibration...</p>
     </div>
@@ -122,15 +122,37 @@
         
         if (mode === 'psychic') {
           document.getElementById('loading-text').style.display = 'block';
+
+          if (typeof window.webgazer !== 'undefined' && typeof window.initPsychicTracker === 'function') {
+            try {
+              window.initPsychicTracker();
+            } catch (e) {
+              // Fall back to script reload path below.
+            }
+            initPhaser();
+            return;
+          }
+
+          const cacheBust = Date.now();
           var script = document.createElement('script');
-          script.src = 'webgazer.min.js';
+          script.src = 'webgazer.min.js?v=' + cacheBust;
           script.onload = function() {
             var trackerScript = document.createElement('script');
-            trackerScript.src = 'js/tracker.js';
+            trackerScript.src = 'js/tracker.js?v=' + cacheBust;
             trackerScript.onload = function() {
               checkWebgazerReady();
             };
+            trackerScript.onerror = function() {
+              const loadingText = document.getElementById('loading-text');
+              loadingText.style.display = 'block';
+              loadingText.textContent = 'Failed to load tracker.js';
+            };
             document.head.appendChild(trackerScript);
+          };
+          script.onerror = function() {
+            const loadingText = document.getElementById('loading-text');
+            loadingText.style.display = 'block';
+            loadingText.textContent = 'Failed to load webgazer.min.js';
           };
           document.head.appendChild(script);
         } else {

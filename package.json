@@ -9,5 +9,6 @@
     "canvas": "^3.2.2",
     "phaser": "^3.90.0",
     "webgazer": "^3.5.3"
-  }
+  },
+  "license": "GPL-3.0"
 }
