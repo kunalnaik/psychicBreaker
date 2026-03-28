@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <title>Brick Breaker Psychic</title>
     <script src="phaser.min.js"></script>
+    <script src="webgazer.min.js"></script>
     <script src="js/boot.js"></script>
     <script src="js/load.js"></script>
     <script src="js/train.js"></script>
@@ -127,44 +128,19 @@
             try {
               window.initPsychicTracker();
             } catch (e) {
-              // Fall back to script reload path below.
+              const loadingText = document.getElementById('loading-text');
+              loadingText.style.display = 'block';
+              loadingText.textContent = 'Failed to initialize tracker: ' + e.message;
             }
             initPhaser();
             return;
           }
 
-          const cacheBust = Date.now();
-          var script = document.createElement('script');
-          script.src = 'webgazer.min.js?v=' + cacheBust;
-          script.onload = function() {
-            var trackerScript = document.createElement('script');
-            trackerScript.src = 'js/tracker.js?v=' + cacheBust;
-            trackerScript.onload = function() {
-              checkWebgazerReady();
-            };
-            trackerScript.onerror = function() {
-              const loadingText = document.getElementById('loading-text');
-              loadingText.style.display = 'block';
-              loadingText.textContent = 'Failed to load tracker.js';
-            };
-            document.head.appendChild(trackerScript);
-          };
-          script.onerror = function() {
-            const loadingText = document.getElementById('loading-text');
-            loadingText.style.display = 'block';
-            loadingText.textContent = 'Failed to load webgazer.min.js';
-          };
-          document.head.appendChild(script);
+          const loadingText = document.getElementById('loading-text');
+          loadingText.style.display = 'block';
+          loadingText.textContent = 'Webgazer not available';
         } else {
           initPhaser();
-        }
-      }
-      
-      function checkWebgazerReady() {
-        if (typeof webgazer !== 'undefined' && typeof webgazer.begin === 'function') {
-          initPhaser();
-        } else {
-          setTimeout(checkWebgazerReady, 100);
         }
       }
       
