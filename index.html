@@ -123,6 +123,14 @@
         document.getElementById('mode-select').style.display = 'none';
         
         if (mode === 'psychic') {
+          const isFirefox = navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
+          if (isFirefox) {
+            const loadingText = document.getElementById('loading-text');
+            document.getElementById('mode-select').style.display = 'flex';
+            loadingText.style.display = 'block';
+            loadingText.textContent = 'Psychic mode works best in Chrome. Please switch browsers for the full experience.';
+            return;
+          }
           document.getElementById('loading-text').style.display = 'block';
 
           if (typeof window.webgazer !== 'undefined' && typeof window.initPsychicTracker === 'function') {
