@@ -223,5 +223,3 @@ window.shutdownPsychicTracker = function shutdownPsychicTracker() {
   trackerState.webcamPollActive = false;
   trackerState.error = null;
 };
-
-window.initPsychicTracker();
